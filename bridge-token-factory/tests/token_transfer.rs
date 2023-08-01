@@ -451,7 +451,7 @@ async fn test_deploy_failures() {
             .max_gas()
             .transact()
             .await,
-        "address should be a valid hex string.: OddLength",
+        "Invalid hex character",
     );
 
     // Fails second time because already exists.
@@ -529,6 +529,10 @@ async fn test_upgrade() {
         .unwrap()
         .result;
 
+    // Migrate factory contract
+    let result = factory.call("migrate").max_gas().transact().await.unwrap();
+    assert!(result.is_success());
+
     let token_account_id: String = factory
         .view(
             "get_bridge_token_account_id",
@@ -589,7 +593,7 @@ async fn test_upgrade() {
     assert!(result);
 
     // Upgrade the bridge token directly because self-upgrade is not supported in version `0.1.6`
-    let token_contract = token_account
+    let _token_contract = token_account
         .deploy(&std::fs::read(BRIDGE_TOKEN_WASM_PATH).unwrap())
         .await
         .unwrap()

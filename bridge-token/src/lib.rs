@@ -38,6 +38,7 @@ pub trait ExtBridgeTokenFactory {
     #[result_serializer(borsh)]
     fn finish_withdraw(
         &self,
+        #[serializer(borsh)] withdrawer: AccountId,
         #[serializer(borsh)] amount: Balance,
         #[serializer(borsh)] recipient: AccountId,
     ) -> Promise;
@@ -58,9 +59,12 @@ impl BridgeToken {
             "Only the factory account can init this contract"
         );
 
+        let mut token = FungibleToken::new(b"t".to_vec());
+        token.internal_register_account(&env::predecessor_account_id());
+
         Self {
             controller: env::predecessor_account_id(),
-            token: FungibleToken::new(b"t".to_vec()),
+            token,
             name: String::default(),
             symbol: String::default(),
             reference: String::default(),
@@ -120,7 +124,11 @@ impl BridgeToken {
 
         ext_bridge_token_factory::ext(self.controller.clone())
             .with_static_gas(FINISH_WITHDRAW_GAS)
-            .finish_withdraw(amount.into(), recipient.parse().unwrap())
+            .finish_withdraw(
+                env::predecessor_account_id(),
+                amount.into(),
+                recipient.parse().unwrap(),
+            )
     }
 
     pub fn account_storage_usage(&self) -> StorageUsage {
